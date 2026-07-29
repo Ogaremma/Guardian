@@ -2,6 +2,7 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.detector import inspect_request
+from app.logger import log_attack
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -37,3 +38,9 @@ def login(
     print("Username:", username)
     print("Password:", password)
     print("Detection Result:", result)
+
+    if not result["safe"]:
+        log_attack(username, result["reason"])
+
+    return result
+
