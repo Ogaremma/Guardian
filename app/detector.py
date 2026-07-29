@@ -1,16 +1,14 @@
+from app.rules.xss import detect_xss
+
 def inspect_request(username, password):
-    """
-    Inspect the incoming login request.
-    Returns a dictionary describing whether
-    the request looks suspicious.
-    """
-    if "<script>" in username:
+    if detect_xss(username):
         return {
             "safe": False,
-            "reason": "Possible XSS attack detected"
+            "reason": "Possible XSS attack",
+            "severity": "high"
         }
     return {
         "safe": True,
-        "reason": "No suspicious activity detected"
+        "reason": "No suspicious activity detected",
+        "severity": "None"
     }
-
