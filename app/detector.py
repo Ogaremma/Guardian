@@ -1,22 +1,13 @@
-from app.rules.xss import detect_xss
-from app.rules.bruteforce import detect_bruteforce
+from app.rule_manager import run_rules
 
 def inspect_request(username, password, ip_address):
-    if detect_xss(username):
-        return {
-            "safe": False,
-            "reason": "Possible XSS attack",
-            "severity": "high"
-        }
-    if detect_bruteforce(ip_address):
-        return {
-            "safe": False,
-            "reason": "Possible brute force attack",
-            "severity": "critical"
-        }
-    return {
-        "safe": True,
-        "reason": "No suspicious activity detected",
-        "severity": "None"
-    }
+    """
+    Pass the request to the Rule Manager.
+    """
+
+    return run_rules(
+        username,
+        password,
+        ip_address
+    )
 
