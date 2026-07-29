@@ -33,11 +33,13 @@ def login(
     username: str = Form(...),
     password: str = Form(...)
 ):
-    result = inspect_request(username, password)
+    client_ip = request.client.host
 
+    print("Client IP:", client_ip)
     print("Username:", username)
     print("Password:", password)
-    print("Detection Result:", result)
+
+    result = inspect_request(username, password)
 
     if not result["safe"]:
         log_attack(username, result["reason"])
