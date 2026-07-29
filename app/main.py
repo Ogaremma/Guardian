@@ -1,15 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from app.detector import inspect_request
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
-@app.get("/")
-def home():
-    return {
-        "application": "Guardian",
-        "version": "1.0",
-        "status": "Running",
-        "message": "Guardian Security Monitoring System"
-    }
+@app.get("/", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html"
+    )
 
 @app.get("/health")
 def health():
@@ -25,3 +27,13 @@ def about():
         "purpose": "Detect suspicious activities on websites"
     }
 
+@app.post("/login")
+def login(
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    result = inspect_request(username, password)
+
+    print("Username:", username)
+    print("Password:", password)
+    print("Detection Result:", result)
