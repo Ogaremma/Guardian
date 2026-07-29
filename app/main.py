@@ -39,10 +39,18 @@ def login(
     print("Username:", username)
     print("Password:", password)
 
-    result = inspect_request(username, password)
+    result = inspect_request(
+        username, 
+        password,
+        client_ip
+    )
 
     if not result["safe"]:
-        log_attack(username, result["reason"])
+        log_attack(
+            username, 
+            result["reason"],
+            client_ip
+        )
 
     return result
 

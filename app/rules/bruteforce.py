@@ -15,4 +15,14 @@ def detect_bruteforce(ip_address):
     if ip_address not in failed_attempts:
         failed_attempts[ip_address] = []
 
-    failed_attempts
+    failed_attempts[ip_address].append(current_time)
+
+    failed_attempts[ip_address] = [
+        attempt
+        for attempt in failed_attempts[ip_address]
+        if current_time - attempt <= TIME_WINDOW
+    ]
+
+    if len(failed_attempts[ip_address]) > MAX_ATTEMPTS:
+        return True
+    return False
