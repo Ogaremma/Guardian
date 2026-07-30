@@ -1,1 +1,2 @@
 [2026-07-29 22:05:06.682762]Username: <script>alert(1)</script>, |Reason: Possible XSS attack
+[2026-07-30 21:37:31.107304]IP: 127.0.0.1 |Username: Drop Table, |Reason: Possible SQL Injection

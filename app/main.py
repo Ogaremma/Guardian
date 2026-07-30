@@ -7,7 +7,7 @@ from app.logger import log_attack
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse) 
 def login_page(request: Request):
     return templates.TemplateResponse(
         request=request,
@@ -30,6 +30,7 @@ def about():
 
 @app.post("/login")
 def login(
+    request: Request,
     username: str = Form(...),
     password: str = Form(...)
 ):
