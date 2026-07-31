@@ -3,6 +3,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.detector import inspect_request
 from app.logger import log_attack
+import app.database
+from app.database import save_attack
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -51,6 +53,13 @@ def login(
             username, 
             result["reason"],
             client_ip
+        )
+        save_attack(
+        website="Local Guardian",
+        attack_type=result["reason"],
+        severity=result["severity"],
+        source_ip=client_ip,
+        username=username
         )
 
     return result
