@@ -57,4 +57,16 @@ def save_attack(
             status
         )
     )
+
+def get_all_attacks():
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM attacks
+        """
+    )
+
+    return cursor.fetchall()
+
 connection.commit()
