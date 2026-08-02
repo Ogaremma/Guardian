@@ -28,6 +28,15 @@ def about():
         "purpose": "Detect suspicious activities on websites"
     }
 
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={}
+    )
+
 @app.post("/login")
 def login(
     request: Request,

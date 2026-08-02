@@ -70,11 +70,34 @@ def get_all_attacks():
     return cursor.fetchall()
 
 def get_total_attacks():
-    cursor.execute("""
+
+    cursor.execute(
+        """
         SELECT COUNT(*)
         FROM attacks
-    """)
+        """
+    )
 
-    return cursor.fetchone()[0]
+    total = cursor.fetchone()[0]
+
+    return total
+
+def get_last_attack():
+
+    cursor.execute(
+        """
+        SELECT attack_type
+        FROM attacks
+        ORDER BY id DESC
+        LIMIT 1
+        """
+    )
+
+    row = cursor.fetchone()
+
+    if row:
+        return row[0]
+
+    return "No attacks yet"
 
 connection.commit()
