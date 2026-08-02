@@ -25,3 +25,9 @@ ENV/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Logs
+logs/
+
+# Database (optional for development)
+guardian.db
