@@ -24,4 +24,4 @@ def send_alert(
 
     message["From"] = sender_email
     message["To"] = recipient_email
-    message["Subject"] = "🚨 GUARDIAN SECURITY ALERT"
+    message["Subject"] = "🚨 GUARDIAN SECURITY ALERTS"
