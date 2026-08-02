@@ -69,4 +69,12 @@ def get_all_attacks():
 
     return cursor.fetchall()
 
+def get_total_attacks():
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM attacks
+    """)
+
+    return cursor.fetchone()[0]
+
 connection.commit()
