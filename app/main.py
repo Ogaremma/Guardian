@@ -90,5 +90,8 @@ def login(
             recipient_email="emmawills725@gmail.com"
         )
 
-    return result
+    return RedirectResponse(
+    url="/dashboard",
+    status_code=303
+)
 
