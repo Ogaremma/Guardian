@@ -15,6 +15,7 @@ pydantic_core==2.46.4
 python-dotenv==1.2.2
 python-multipart==0.0.32
 SQLAlchemy==2.0.51
+starlette==0.46.2
 typing-inspection==0.4.2
 typing_extensions==4.16.0
 uvicorn==0.52.0
