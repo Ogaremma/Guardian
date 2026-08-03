@@ -3,6 +3,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.detector import inspect_request
 from app.incident import handle_incident
+from fastapi.responses import RedirectResponse
+from app.database import (
+    get_total_attacks,
+    get_last_attack,
+    get_all_attacks
+)
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -31,10 +37,29 @@ def about():
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
 
+    total_attacks = get_total_attacks()
+    last_attack = get_last_attack()
+
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={}
+        context={
+            "threats_today": total_attacks,
+            "last_attack": last_attack
+        }
+    )
+
+@app.get("/logs", response_class=HTMLResponse)
+def logs(request: Request):
+
+    attacks = get_all_attacks()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="logs.html",
+        context={
+            "attacks": attacks
+        }
     )
 
 @app.post("/login")

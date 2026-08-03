@@ -100,4 +100,18 @@ def get_last_attack():
 
     return "No attacks yet"
 
+def get_all_attacks():
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM attacks
+        ORDER BY id DESC
+        """
+    )
+
+    rows = cursor.fetchall()
+
+    return rows
+
 connection.commit()
