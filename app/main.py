@@ -13,11 +13,14 @@ from app.database import (
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-@app.get("/")
-def home():
-    return {
-        "message": "Guardian is working!"
-    }
+@app.get("/", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse(
+        "login.html",
+        {
+            "request": request
+        }
+    )
 
 @app.get("/health")
 def health():
