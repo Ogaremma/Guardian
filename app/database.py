@@ -243,4 +243,20 @@ def get_all_attacks():
 
     return rows
 
+
+def get_recent_attacks_by_username(username: str, limit: int = 5):
+
+    cursor.execute(
+        """
+        SELECT id, website, attack_type, severity, source_ip, timestamp, status
+        FROM attacks
+        WHERE username = ?
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (username, limit)
+    )
+
+    return cursor.fetchall()
+
 connection.commit()

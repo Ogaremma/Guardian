@@ -1,4 +1,6 @@
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
+import re
+import urllib.request
 
 from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +11,7 @@ from app.database import (
     email_exists,
     get_all_attacks,
     get_last_attack,
+    get_recent_attacks_by_username,
     get_total_attacks,
     get_user_by_token,
     get_user_by_username,
@@ -29,6 +32,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 templates = Jinja2Templates(directory="templates")
+
+
+def fetch_html_content(url: str) -> str | None:
+    try:
+        request_obj = urllib.request.Request(
+            url,
+            headers={"User-Agent": "GuardianScanner/1.0"}
+        )
+        with urllib.request.urlopen(request_obj, timeout=15) as response:
+            content_type = response.info().get("Content-Type", "")
+            body = response.read()
+
+        if "text/html" not in content_type.lower():
+            return ""
+
+        return body.decode("utf-8", errors="ignore")
+    except Exception:
+        return None
+
 
 @app.get("/", response_class=HTMLResponse)
 def landing_page(request: Request):
@@ -74,7 +96,7 @@ def about():
     }
 
 @app.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request):
+def dashboard(request: Request, message: str | None = None, message_type: str = "info"):
     username = request.cookies.get("guardian_user")
     if not username:
         return RedirectResponse(url=f"/login?message={quote('Please login first.')}&message_type=warning", status_code=303)
@@ -86,26 +108,7 @@ def dashboard(request: Request):
     total_attacks = get_total_attacks()
     last_attack = get_last_attack()
     website = user[2]
-    site_token = user[4]
-    agent_snippet = f"""<script>
-(function() {{
-    const guardianEndpoint = '{request.base_url}agent/report';
-    const payload = {{
-        site_token: '{site_token}',
-        url: window.location.href,
-        title: document.title,
-        search: window.location.search,
-        user_agent: navigator.userAgent,
-        referrer: document.referrer
-    }};
-
-    fetch(guardianEndpoint, {{
-        method: 'POST',
-        headers: {{ 'Content-Type': 'application/json' }},
-        body: JSON.stringify(payload)
-    }});
-}})();
-</script>"""
+    recent_attacks = get_recent_attacks_by_username(username)
 
     return templates.TemplateResponse(
         request=request,
@@ -115,10 +118,55 @@ def dashboard(request: Request):
             "last_attack": last_attack,
             "username": username,
             "website": website,
-            "site_token": site_token,
-            "agent_snippet": agent_snippet,
+            "message": message,
+            "message_type": message_type,
+            "recent_attacks": recent_attacks,
         }
     )
+
+@app.post("/scan")
+def scan(request: Request, scan_url: str = Form(...)):
+    username = request.cookies.get("guardian_user")
+    if not username:
+        return RedirectResponse(url=f"/login?message={quote('Please login first.')}&message_type=warning", status_code=303)
+
+    user = get_user_by_username(username)
+    if not user:
+        return RedirectResponse(url=f"/login?message={quote('Please login first.')}&message_type=warning", status_code=303)
+
+    if not scan_url:
+        scan_url = user[2]
+
+    if not scan_url.startswith(("http://", "https://")):
+        scan_url = f"http://{scan_url}"
+
+    html_content = fetch_html_content(scan_url)
+    if html_content is None:
+        message = quote("External scan failed: unable to retrieve the site.")
+        return RedirectResponse(url=f"/dashboard?message={message}&message_type=danger", status_code=303)
+
+    title_match = re.search(r"<title>(.*?)</title>", html_content, re.IGNORECASE | re.DOTALL)
+    title = title_match.group(1).strip() if title_match else ""
+    search = urlparse(scan_url).query
+
+    result = inspect_agent_report(scan_url, title, search, request.client.host)
+    if not result["safe"]:
+        username_val, email, website, _, _ = user
+        log_attack(username_val, result["reason"], request.client.host)
+        save_attack(
+            website=website,
+            attack_type=result["reason"],
+            severity=result["severity"],
+            source_ip=request.client.host,
+            username=username_val
+        )
+        message = quote(f"External scan found suspicious content: {result['reason']}")
+        message_type = "danger"
+    else:
+        message = quote("External scan completed. No suspicious content found.")
+        message_type = "success"
+
+    return RedirectResponse(url=f"/dashboard?message={message}&message_type={message_type}", status_code=303)
 
 @app.get("/logs", response_class=HTMLResponse)
 def logs(request: Request):

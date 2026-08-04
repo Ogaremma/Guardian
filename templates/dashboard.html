@@ -78,39 +78,91 @@
             </div>
         </div>
 
+        {% if message %}
+        <div class="mb-4">
+            <div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row mt-4">
+            <div class="col-lg-12">
+                <div class="hero-card p-4 shadow-lg">
+                    <h4 class="fw-bold">Guardian scans your site from outside and detects suspicious content.</h4>
+                    <p class="mb-3 text-white-75">Use the external scanner below to crawl your registered website or any
+                        URL you are permitted to test.</p>
+                    <p class="mb-0 text-white-75">If you do not control the site, use a browser extension or proxy with
+                        consent instead of installing code on the page.</p>
+                </div>
+            </div>
+        </div>
+
         <div class="row mt-4">
             <div class="col-lg-8">
                 <div class="hero-card p-4 shadow-lg">
-                    <h4 class="fw-bold">Guardian protects your website with alert emails and threat detection.</h4>
-                    <p class="mb-3 text-white-75">Your registered site and alert email are already saved. Use the logs
-                        page to review activity and logout when you're done.</p>
-                    <p class="mb-0 text-white-75">To monitor a page in real time, install the Guardian agent script
-                        below on any website page. It reports suspicious activity back to Guardian and logs it to the
-                        dashboard.</p>
+                    <h5 class="fw-bold mb-3">External website scan</h5>
+                    <form action="/scan" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label text-white">Website URL to scan</label>
+                            <input class="form-control" type="url" name="scan_url" value="{{ website }}"
+                                placeholder="https://example.com">
+                            <div class="form-text text-white-50">Leave blank to scan your registered website.</div>
+                        </div>
+                        <button class="btn btn-light btn-lg" type="submit">Run external scan</button>
+                    </form>
+                    <p class="text-white-75 mt-3 mb-0">The scanner fetches the page content from outside and analyzes it
+                        for suspicious patterns. Use it only on sites you are authorized to test.</p>
                 </div>
             </div>
             <div class="col-lg-4">
                 <div class="dashboard-card p-4 shadow-lg">
-                    <h5 class="text-uppercase text-muted">Site Token</h5>
-                    <p class="text-white-75 mb-2">Use this token in the agent snippet to link reports to your account.
-                    </p>
-                    <div class="p-3 mb-3 bg-dark rounded text-break">{{ site_token }}</div>
-                    <p class="text-white-75 mb-0"><strong>Monitored Website:</strong> {{ website }}</p>
+                    <h5 class="text-uppercase text-muted">Monitored Website</h5>
+                    <p class="text-white-75 mb-2">The site registered with your account.</p>
+                    <div class="p-3 mb-3 bg-dark rounded text-break">{{ website }}</div>
+                    <p class="text-white-75 mb-0">Use a browser extension or proxy if you need monitoring without direct
+                        install permissions.</p>
                 </div>
             </div>
         </div>
 
         <div class="row mt-4">
             <div class="col-12">
-                <div class="hero-card p-4 shadow-lg">
-                    <h5 class="fw-bold mb-3">Guardian Agent Install Snippet</h5>
-                    <div class="mb-3">
-                        <label class="form-label text-white">Copy the code below into the website you want
-                            monitored.</label>
-                        <textarea class="form-control" rows="10" readonly>{{ agent_snippet }}</textarea>
+                <div class="dashboard-card p-4 shadow-lg">
+                    <h5 class="fw-bold mb-3">Recent scan history</h5>
+                    {% if recent_attacks %}
+                    <div class="table-responsive">
+                        <table class="table table-borderless table-hover text-white align-middle">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Website</th>
+                                    <th>Attack</th>
+                                    <th>Severity</th>
+                                    <th>Source IP</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attack in recent_attacks %}
+                                <tr>
+                                    <td>{{ attack[0] }}</td>
+                                    <td class="text-break">{{ attack[1] }}</td>
+                                    <td>{{ attack[2] }}</td>
+                                    <td>{{ attack[3] }}</td>
+                                    <td>{{ attack[4] }}</td>
+                                    <td>{{ attack[5] }}</td>
+                                    <td>{{ attack[6] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <p class="text-white-75 mb-0">Paste this snippet into any page’s HTML. Guardian will receive reports
-                        from that page and log suspicious activity.</p>
+                    {% else %}
+                    <p class="text-white-75 mb-0">No recent scans or suspicious activity has been recorded yet.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
