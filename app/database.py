@@ -41,10 +41,18 @@ cursor.execute("""
 
         password_hash TEXT,
 
-        created_at TEXT
+        created_at TEXT,
+
+        site_token TEXT
 
     )
 """)
+
+cursor.execute("PRAGMA table_info(users)")
+columns = [row[1] for row in cursor.fetchall()]
+if "site_token" not in columns:
+    cursor.execute("ALTER TABLE users ADD COLUMN site_token TEXT")
+    connection.commit()
 
 
 def hash_password(password: str, salt: str | None = None) -> str:
@@ -96,8 +104,13 @@ def save_attack(
         )
     )
 
+def generate_site_token() -> str:
+    return secrets.token_urlsafe(24)
+
+
 def create_user(username: str, email: str, website: str, password: str) -> bool:
     password_hash = hash_password(password)
+    site_token = generate_site_token()
 
     cursor.execute(
         """
@@ -106,16 +119,18 @@ def create_user(username: str, email: str, website: str, password: str) -> bool:
             email,
             website,
             password_hash,
-            created_at
+            created_at,
+            site_token
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
         (
             username,
             email,
             website,
             password_hash,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            site_token
         )
     )
     connection.commit()
@@ -125,11 +140,24 @@ def create_user(username: str, email: str, website: str, password: str) -> bool:
 def get_user_by_username(username: str):
     cursor.execute(
         """
-        SELECT username, email, website, password_hash
+        SELECT username, email, website, password_hash, site_token
         FROM users
         WHERE username = ?
         """,
         (username,)
+    )
+
+    return cursor.fetchone()
+
+
+def get_user_by_token(site_token: str):
+    cursor.execute(
+        """
+        SELECT username, email, website, password_hash, site_token
+        FROM users
+        WHERE site_token = ?
+        """,
+        (site_token,)
     )
 
     return cursor.fetchone()
@@ -166,7 +194,7 @@ def verify_user(username: str, password: str) -> bool:
     if not row:
         return False
 
-    _, _, _, password_hash = row
+    password_hash = row[3]
     return verify_password(password, password_hash)
 
 

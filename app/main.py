@@ -1,7 +1,8 @@
 from urllib.parse import quote
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.database import (
     create_user,
@@ -9,13 +10,24 @@ from app.database import (
     get_all_attacks,
     get_last_attack,
     get_total_attacks,
+    get_user_by_token,
+    get_user_by_username,
+    save_attack,
     username_exists,
     verify_user,
 )
-from app.detector import inspect_request
+from app.detector import inspect_agent_report, inspect_request
 from app.incident import handle_incident
+from app.logger import log_attack
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
@@ -67,8 +79,33 @@ def dashboard(request: Request):
     if not username:
         return RedirectResponse(url=f"/login?message={quote('Please login first.')}&message_type=warning", status_code=303)
 
+    user = get_user_by_username(username)
+    if not user:
+        return RedirectResponse(url=f"/login?message={quote('Please login first.')}&message_type=warning", status_code=303)
+
     total_attacks = get_total_attacks()
     last_attack = get_last_attack()
+    website = user[2]
+    site_token = user[4]
+    agent_snippet = f"""<script>
+(function() {{
+    const guardianEndpoint = '{request.base_url}agent/report';
+    const payload = {{
+        site_token: '{site_token}',
+        url: window.location.href,
+        title: document.title,
+        search: window.location.search,
+        user_agent: navigator.userAgent,
+        referrer: document.referrer
+    }};
+
+    fetch(guardianEndpoint, {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify(payload)
+    }});
+}})();
+</script>"""
 
     return templates.TemplateResponse(
         request=request,
@@ -77,6 +114,9 @@ def dashboard(request: Request):
             "threats_today": total_attacks,
             "last_attack": last_attack,
             "username": username,
+            "website": website,
+            "site_token": site_token,
+            "agent_snippet": agent_snippet,
         }
     )
 
@@ -139,8 +179,9 @@ def register(
         return RedirectResponse(url=f"/register?message={message}&message_type=danger", status_code=303)
 
     create_user(username, email, website, password)
-    message = quote("Registration successful. Please login.")
-    return RedirectResponse(url=f"/login?message={message}&message_type=success", status_code=303)
+    response = RedirectResponse(url="/dashboard", status_code=303)
+    response.set_cookie("guardian_user", username, httponly=True)
+    return response
 
 @app.post("/login")
 def login(
@@ -178,4 +219,31 @@ def login(
     response = RedirectResponse(url="/dashboard", status_code=303)
     response.set_cookie("guardian_user", username, httponly=True)
     return response
+
+@app.post("/agent/report")
+async def agent_report(request: Request):
+    payload = await request.json()
+    site_token = payload.get("site_token")
+    url = payload.get("url", "")
+    title = payload.get("title", "")
+    search = payload.get("search", "")
+    client_ip = request.client.host
+
+    user = get_user_by_token(site_token)
+    if not user:
+        return JSONResponse({"error": "Invalid site token."}, status_code=400)
+
+    username, email, website, _, _ = user
+    result = inspect_agent_report(url, title, search, client_ip)
+    if not result["safe"]:
+        log_attack(username, result["reason"], client_ip)
+        save_attack(
+            website=website,
+            attack_type=result["reason"],
+            severity=result["severity"],
+            source_ip=client_ip,
+            username=username
+        )
+
+    return JSONResponse({"safe": result["safe"], "reason": result["reason"]})
 
