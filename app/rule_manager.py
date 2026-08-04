@@ -11,7 +11,7 @@ def run_rules(username, password, ip_address):
         return {
             "safe": False,
             "reason": "Possible XSS attack",
-            "severity": "high"
+            "severity": "High"
         }
     
     if detect_sql_injection(username) or detect_sql_injection(password):
@@ -27,6 +27,31 @@ def run_rules(username, password, ip_address):
             "reason": "Possible Brute Force attack",
             "severity": "Critical"
         }
+    return {
+        "safe": True,
+        "reason": "No suspicious activity detected",
+        "severity": "None"
+    }
+
+
+def run_agent_rules(text, ip_address):
+    """
+    Runs a lightweight set of rules for Guardian agent reports.
+    """
+    if detect_xss(text):
+        return {
+            "safe": False,
+            "reason": "Possible XSS attack",
+            "severity": "High"
+        }
+
+    if detect_sql_injection(text):
+        return {
+            "safe": False,
+            "reason": "Possible SQL Injection",
+            "severity": "High"
+        }
+
     return {
         "safe": True,
         "reason": "No suspicious activity detected",
